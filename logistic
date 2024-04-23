@@ -1,0 +1,58 @@
+public class TransportationProblem {
+
+    public static void main(String[] args) {
+        double[][] costs = {{10, 20, 30}, {15, 25, 35}, {20, 30, 40}};
+        double[] supply = {50, 60, 70};
+        double[] demand = {30, 40, 50};
+
+        LinearObjectiveFunction objectiveFunction = new LinearObjectiveFunction(flatten(costs), 0);
+
+        try {
+            SimplexSolver solver = new SimplexSolver();
+            double[] solution = solver.optimize(objectiveFunction, constraints(supply, demand)).getPoint();
+
+            System.out.println("Optimal Shipping Plan:");
+            for (int i = 0; i < supply.length; i++) {
+                for (int j = 0; j < demand.length; j++) {
+                    int index = i * demand.length + j;
+                    System.out.println("Ship " + solution[index] + " units from Source " + i + " to Destination " + j);
+                }
+            }
+        } catch (UnboundedSolutionException e) {
+            System.out.println("The solution is unbounded.");
+        }
+    }
+
+    private static double[] flatten(double[][] matrix) {
+        int rows = matrix.length;
+        int cols = matrix[0].length;
+        double[] flattened = new double[rows * cols];
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                flattened[i * cols + j] = matrix[i][j];
+            }
+        }
+        return flattened;
+    }
+
+    private static LinearConstraint[] constraints(double[] supply, double[] demand) {
+        int numSources = supply.length;
+        int numDestinations = demand.length;
+        LinearConstraint[] constraints = new LinearConstraint[numSources + numDestinations];
+        for (int i = 0; i < numSources; i++) {
+            double[] coefficients = new double[numSources * numDestinations];
+            for (int j = 0; j < numDestinations; j++) {
+                coefficients[i * numDestinations + j] = 1;
+            }
+            constraints[i] = new LinearConstraint(coefficients, Relationship.LEQ, supply[i]);
+        }
+        for (int j = 0; j < numDestinations; j++) {
+            double[] coefficients = new double[numSources * numDestinations];
+            for (int i = 0; i < numSources; i++) {
+                coefficients[i * numDestinations + j] = 1;
+            }
+            constraints[numSources + j] = new LinearConstraint(coefficients, Relationship.EQ, demand[j]);
+        }
+        return constraints;
+    }
+}
